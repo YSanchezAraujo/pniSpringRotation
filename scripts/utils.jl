@@ -39,3 +39,19 @@ function viz_ecog(info_path::String; interval=5)
     return outline
 end
 
+
+#
+#function save_giff(data, saveName, fps)
+#    @userplot rwPlot
+#    @recipe function g(gs::rwPlot)
+#        i = gs.args
+#        plot(i)
+#    end
+#
+#    anim = @animate for i in data
+#        plot(i)
+#    end
+#
+#    gif(anim, saveName, fps=fps)
+#end
+#
