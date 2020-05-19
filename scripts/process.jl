@@ -19,25 +19,34 @@ data = load_all_data(dataFiles, parseFn);
 NSAMPLES = size(data, 1);
 NSECONDS = NSAMPLES / DATA_SAMPLING_RATE;
 
-# create a morlet wavelet struct
+# create a morlet wavelet
 # the number inside WT.Morlet() is related to the trade-off between
 # resolutions, the smaller it is, the less we pick up from the lower frequencies
 # at about 3, you get a small amount from around the 10 Hz range
 # the parameter s, seems to control how many frequencies are computed
 # at s=20 we get up to 71hz, lower a smaller s it's less, at s = 30 it's 108hz
-wav = wavelet(WT.Morlet(4); s=30);
+wav = wavelet(WT.Morlet(6); s=30);
 # example of computing a continuous time morlet wavelet transform on an array
-cwtMor = cwt(data[:, 12], wav);
+cwtMor = cwt(data[:, 1], wav);
 # extracting the real part of the transform
 rcwtMor = real(cwtMor);
 
 # for downsampling
 ratio = 1//10;
-nSamples = Int64(ceil(Float64(size(data, 1) * ratio)));
-rsTransform = zeros(nSamples, size(rcwtMor, 2));
+rsTransform = downsample_spectro(rcwtMor, size(data, 1), ratio);
 
-for k in 1:size(rcwtMor, 2)
-    rsTransform[:, k] = resample(rcwtMor[:, k], ratio)
+for ch_num in 1:size(data, 2)
+    cwtMor = cwt(data[:, ch_num], wav)
+    rcwtMor = real(cwtMor)
+    rscwt = downsample_spectro(rcwtMor, size(data, 1), ratio)
+    save_name = string("fullspectro_", ch_num, ".png")
+    show_spectro(abs.(rcwtMor'), (15, 8), split(save_name, ".")[1])
+    plt.savefig(save_name, dpi=100, bbox_inches="tight")
+    plt.close()
+    save_name = string("dsspectro_", ch_num, ".png")
+    show_spectro(abs.(rscwt'), (15, 8), split(save_name, ".")[1])
+    plt.savefig(save_name, dpi=100, bbox_inches="tight")
+    plt.close()
 end
 
 # remember to transpose at plot time so that time is on the x-axis

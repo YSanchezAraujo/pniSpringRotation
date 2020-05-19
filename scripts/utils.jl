@@ -39,6 +39,27 @@ function viz_ecog(info_path::String; interval=5)
     return outline
 end
 
+function show_spectro(data, figsize, title)
+    fig, ax = plt.subplots(figsize=figsize)
+    im = ax.matshow(data, origin="lower")
+    ax.axis("tight")
+    ax.xaxis.set_ticks_position("bottom")
+    ax.set_ylabel("Frq (Hz)")
+    ax.set_xlabel("Time (s)")
+    ax.set_title(title)
+    fig.colorbar(im)
+end
+
+function downsample_spectro(wav_res, true_N, ratio)
+    Nfreqs = size(wav_res, 2)
+    nSamples = Int64(ceil(Float64(true_N * ratio)))
+    rsTransform = zeros(nSamples, Nfreqs);
+    for k in 1:Nfreqs
+        rsTransform[:, k] = resample(wav_res[:, k], ratio)
+    end
+    return rsTransform
+end
+
 
 #
 #function save_giff(data, saveName, fps)
