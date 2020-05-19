@@ -45,17 +45,17 @@ function show_spectro(data, figsize, title)
     ax.axis("tight")
     ax.xaxis.set_ticks_position("bottom")
     ax.set_ylabel("Frq (Hz)")
-    ax.set_xlabel("Time (s)")
+    ax.set_xlabel("Samples (Fs=1000Hz)")
     ax.set_title(title)
     fig.colorbar(im)
 end
 
 function downsample_spectro(wav_res, true_N, ratio)
-    Nfreqs = size(wav_res, 2)
+    nfreqs = size(wav_res, 1)
     nSamples = Int64(ceil(Float64(true_N * ratio)))
-    rsTransform = zeros(nSamples, Nfreqs);
-    for k in 1:Nfreqs
-        rsTransform[:, k] = resample(wav_res[:, k], ratio)
+    rsTransform = zeros(nfreqs, nSamples);
+    for k in 1:nfreqs
+        rsTransform[k, :] = resample(wav_res[k, :], ratio)
     end
     return rsTransform
 end
