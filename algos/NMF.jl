@@ -44,7 +44,7 @@ function hals_update(A, B, C)
 	for k in setdiff(colset, l)
 	    tsum .+= U[:, k]*(B[k, :]'*B[l, :])
 	end
-	U[:, l] = max.(0,  (C*B[l, :] - tsum) / (norm(B[l, :]) .+ eps()))
+	U[:, l] = max.(0,  (C*B[l, :] - tsum) / (B[l, :]'*B[l, :] .+ eps()))
     end
     return U
 end
@@ -80,7 +80,9 @@ function nmf_mu(X::Array{Float64, 2},
 
 end
 
-# doesn't really work b/c the updates seem to be off
+# the stoping criteria on the tolerance needs to change
+# it will reach a better solution than MU, faster but
+# the current tolerance check cant pick that up
 """
 vanilla nmf with multiplicative updates
 X: input data
