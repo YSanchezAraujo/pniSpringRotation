@@ -24,16 +24,11 @@ function avgF2norm(A::Array{Float64, 2}, B::Array{Float64, 2})
     return error * 1/K
 end
 
-function F2norm(A::Array{Float64, 1}, B::Array{Float64, 1})
-    return sqrt(sum((A - B).^2))
-end
-
 function mu_update(A, B, C)
     # A is the to be updated matrix
     return A .* ((C*B') ./ (A*(B*B')) .+ eps())
 end
 
-# this doesn't really work
 function hals_update(A, B, C)
     # A is the to be updated matrix
     N, K = size(A)
