@@ -4,8 +4,45 @@ using LinearAlgebra, Distributions, DSP;
 TODO: need to add convolutions, currently it's just vanilla NMF
 for learning / testing purposes. Once those check out next step is
 to add convolution, then implement seqCNMF with MU and HALS
+
+MOST IMMEDIATE TODOS:
+    1. make it convolutional
+    2. add the temporal correlation penalty constructed from H
 """
 
+function shift(U, t, l)
+    # the shift operation inserts zeros when
+    # (t - l) < 0 or (t + l) > T
+    N, T = size(U)
+    # can use the built in circshift and padd when needed
+    if t - l < 0
+	left_shift = abs(t - l)
+    else
+	left_shift = 0
+    end
+
+    if t + l > T
+	right_shift = abs(T - (t + l))
+    else
+	right_shift = 0
+    end
+
+    U = [zeros(N, left_shift) U]
+    U = [U zeros(N, right_shift)]
+    return U
+end
+
+function tensor_conv(A, B, )
+    N, k, L = size(A)
+    T = size(B, 2)
+    C = zeros(N, T)
+    # need to shift B (that's H)
+    for l in 1:L
+	B = shift(B, t, l)
+        C += A[:, :, l]*B
+    end
+    return C
+end
 
 function matrix_distance(A::Array{Float64, 2}, B::Array{Float64, 2})
     UA, sA, VA = svd(A)
@@ -16,11 +53,9 @@ end
 function avgF2norm(A::Array{Float64, 2}, B::Array{Float64, 2})
     error = 0
     K = size(A, 1)
-
     for k in 1:K
 	error += sqrt(sum((A[k, :] - B[k, :]).^2))
     end
-
     return error * 1/K
 end
 
@@ -39,7 +74,7 @@ function hals_update(A, B, C)
 	for k in setdiff(colset, l)
 	    tsum .+= U[:, k]*(B[k, :]'*B[l, :])
 	end
-	U[:, l] = max.(0,  (C*B[l, :] - tsum) / (B[l, :]'*B[l, :] .+ eps()))
+	U[:, l] = max.(0.0,  (C*B[l, :] - tsum) / (B[l, :]'*B[l, :] .+ eps()))
     end
     return U
 end
@@ -54,25 +89,24 @@ tol: tolerance for the change in cost
 maxIter: maximum iteration to go up to
 """
 function nmf_mu(X::Array{Float64, 2}, 
-	     k::Int64,
-	     d::Function; tol=1.0e-5, maxIter=1.0e6)
+	        k::Int64,
+	        d::Function; tol=1.0e-4, maxIter=1.0e4)
     
     N, T = size(X)
     W = rand(Uniform(0.0, 1.0), (N, k))
     H = rand(Uniform(0.0, 1.0), (k, T))
     curIter, deltaCost, F = 1.0, 1.0, 0.0
-
     while (deltaCost > tol) && (curIter < maxIter)
-	W = mu_update(W, H, X)
+	for i in 1:10
+	    W = mu_update(W, H, X)
+	end
 	H = mu_update(H', W', X')'
         X_tild = W*H
         F = d(X_tild, X)
         deltaCost = abs(deltaCost - F)
 	curIter += 1
     end
-
     return W, H, F, deltaCost, curIter
-
 end
 
 # the stoping criteria on the tolerance needs to change
@@ -88,7 +122,7 @@ maxIter: maximum iteration to go up to
 """
 function nmf_hals(X::Array{Float64, 2},
                   k::Int64,
-                  d::Function; tol=1.0e-5, maxIter=1.0e6)
+                  d::Function; tol=1.0e-4, maxIter=1.0e4)
 
     N, T = size(X)
     W = rand(Uniform(0.0, 1.0), (N, k))
@@ -96,18 +130,17 @@ function nmf_hals(X::Array{Float64, 2},
     curIter, deltaCost, F = 1.0, 1.0, 0.0
     W .*= dot(X, W*H) / dot(W*H, W*H)
     H .*= dot(X*H', W) / dot(W'*W, H*H')
-
     while (deltaCost > tol) && (curIter < maxIter)
-        W = hals_update(W, H, X)
+	for i in 1:10
+            W = hals_update(W, H, X)
+	end
         H = hals_update(H', W', X')'
         X_tild = W*H
         F = d(X_tild, X)
         deltaCost = abs(deltaCost - F)
         curIter += 1
     end
-    
     return W, H, F, deltaCost, curIter
-
 end
 
 
@@ -149,13 +182,10 @@ function nmf_grad(X::Array{Float64, 2},
     W = rand(Uniform(0.01, 0.05), (N, k))
     H = rand(Uniform(0.01, 0.05), (k, T))
     curIter, deltaCost, F = 1.0, 1.0, 0.0
-
     while (deltaCost > tol) && (curIter < maxIter)
         # TODO
     end
-
     return W, H, F, deltaCost, curIter
-
 end
 
 
@@ -176,7 +206,6 @@ function seqnmf(X::Array{Float64, 2},
     W = rand(Uniform(0.01, 0.05), (N, k))
     H = rand(Uniform(0.01, 0.05), (k, T))
     curIter, deltaCost = 1, 1
-
     while (curIter < maxIter) && (deltaCost > tol)
 	# TODO
 	# update H with MU
@@ -185,7 +214,5 @@ function seqnmf(X::Array{Float64, 2},
 	# update W using MU update
 	curIter += 1
     end
-
-
-
+    return W, H, curIter, deltaCost
 end
